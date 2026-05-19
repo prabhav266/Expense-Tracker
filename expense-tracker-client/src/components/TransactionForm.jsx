@@ -14,6 +14,7 @@ function TransactionForm({ onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [currency, setCurrency] = useState("INR");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,10 +27,11 @@ function TransactionForm({ onSuccess }) {
     try {
       await api.post("/transactions", {
         amount: Number(amount),
+        currency,
         type,
         category,
         note
-      });
+    });
       setAmount("");
       setCategory("");
       setNote("");
@@ -109,27 +111,81 @@ function TransactionForm({ onSuccess }) {
 
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
         {/* Amount */}
-        <div>
-          <label style={{ fontSize: "11px", fontWeight: 600, color: "#5a5a7a", marginBottom: "6px", display: "block", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-            Amount (₹)
-          </label>
-          <div style={{ position: "relative" }}>
-            <span style={{
-              position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)",
-              color: "#5a5a7a", fontSize: "15px", fontWeight: 600
-            }}>₹</span>
-            <input
-              className="inp"
-              type="number"
-              placeholder="0.00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              min="0"
-              step="any"
-              style={{ paddingLeft: "32px", fontSize: "16px", fontWeight: 600 }}
-            />
-          </div>
-        </div>
+<div>
+  <label
+    style={{
+      fontSize: "11px",
+      fontWeight: 600,
+      color: "#5a5a7a",
+      marginBottom: "6px",
+      display: "block",
+      textTransform: "uppercase",
+      letterSpacing: "0.06em"
+    }}
+  >
+    Amount
+  </label>
+
+  <div style={{ display: "flex", gap: "10px" }}>
+
+    {/* Currency */}
+    <select
+      value={currency}
+      onChange={(e) => setCurrency(e.target.value)}
+      className="inp"
+      style={{
+        width: "110px",
+        cursor: "pointer",
+        flexShrink: 0
+      }}
+    >
+      <option value="INR">INR</option>
+      <option value="USD">USD</option>
+      <option value="EUR">EUR</option>
+      <option value="GBP">GBP</option>
+    </select>
+
+    {/* Amount Input */}
+    <div style={{ position: "relative", flex: 1 }}>
+      <span
+        style={{
+          position: "absolute",
+          left: "14px",
+          top: "50%",
+          transform: "translateY(-50%)",
+          color: "#5a5a7a",
+          fontSize: "15px",
+          fontWeight: 600
+        }}
+      >
+        {currency === "INR"
+          ? "₹"
+          : currency === "USD"
+          ? "$"
+          : currency === "EUR"
+          ? "€"
+          : "£"}
+      </span>
+
+      <input
+        className="inp"
+        type="number"
+        placeholder="0.00"
+        value={amount}
+        onChange={(e) => setAmount(e.target.value)}
+        min="0"
+        step="any"
+        style={{
+          paddingLeft: "32px",
+          fontSize: "16px",
+          fontWeight: 600,
+          width: "100%"
+        }}
+      />
+    </div>
+
+  </div>
+</div>
 
         {/* Category */}
         <div>

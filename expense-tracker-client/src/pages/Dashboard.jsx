@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import TransactionForm from "../components/TransactionForm";
 import TransactionList from "../components/TransactionList";
+import ExpenseChart from "../components/ExpenseChart";
 
 function formatAmount(n) {
   return new Intl.NumberFormat("en-IN").format(Math.abs(n));
@@ -177,6 +178,16 @@ function Dashboard() {
             />
           </div>
         )}
+
+        {/* Analytics Chart */}
+        <div
+          className="animate-slide-up"
+          style={{
+          marginBottom: "28px"
+        }}
+        >
+          <ExpenseChart summary={summary} />
+        </div>
 
         {/* Main layout */}
         <div style={{ display: "grid", gridTemplateColumns: "340px 1fr", gap: "20px", alignItems: "start" }}>

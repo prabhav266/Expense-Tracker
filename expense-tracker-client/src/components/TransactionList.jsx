@@ -161,7 +161,8 @@ function TransactionList({ refreshKey, onDelete, filter }) {
                   color: t.type === "income" ? "#34d399" : "#f87171",
                   letterSpacing: "-0.01em"
                 }}>
-                  {t.type === "income" ? "+" : "-"}₹{formatAmount(t.amount)}
+                  {t.type === "income" ? "+" : "-"}
+                  {t.currency} {formatAmount(t.amount)}
                 </div>
               </div>
 
