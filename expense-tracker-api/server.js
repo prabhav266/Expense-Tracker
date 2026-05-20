@@ -10,8 +10,17 @@ const app = express();
 
 // BUG FIX: configure CORS with proper origin and credentials support
 app.use(cors({
-  origin: process.env.CLIENT_URL || "http://localhost:5173",
-  credentials: true,
+
+  origin: [
+
+    "http://localhost:5173",
+
+    "https://expense-tracker-three-kappa-62.vercel.app"
+
+  ],
+
+  credentials: true
+
 }));
 app.use(express.json());
 app.use("/", mainRoutes);
