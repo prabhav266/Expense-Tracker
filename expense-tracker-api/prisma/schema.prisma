@@ -8,11 +8,14 @@ datasource db {
 }
 
 model User {
-  id        Int           @id @default(autoincrement())
-  email     String        @unique
-  password  String
-  createdAt DateTime      @default(now())
-  transactions Transaction[]
+  id            Int             @id @default(autoincrement())
+  email         String          @unique
+  password      String
+  createdAt     DateTime        @default(now())
+  transactions  Transaction[]
+  verified      Boolean         @default(false)
+  otp           String?
+  otpExpiry     DateTime?
 }
 
 model Transaction {

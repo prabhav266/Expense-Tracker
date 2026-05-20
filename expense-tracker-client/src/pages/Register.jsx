@@ -16,10 +16,27 @@ function Register() {
       setError("Password must be at least 6 characters.");
       return;
     }
+    const emailRegex =
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+if (!emailRegex.test(email)) {
+
+  setError(
+    "Enter a valid email address."
+  );
+
+  return;
+
+}
     setLoading(true);
     try {
       await api.post("/auth/register", { email, password });
-      navigate("/login");
+      navigate(
+  "/verify-otp",
+  {
+    state: { email }
+  }
+);
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed. Please try again.");
     } finally {
@@ -93,6 +110,7 @@ function Register() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
                 required
               />
             </div>
@@ -107,6 +125,7 @@ function Register() {
                 placeholder="Min. 6 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
                 required
               />
             </div>
