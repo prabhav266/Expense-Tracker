@@ -4,6 +4,22 @@ import api from "../api/axios";
 import TransactionForm from "../components/TransactionForm";
 import TransactionList from "../components/TransactionList";
 import ExpenseChart from "../components/ExpenseChart";
+import TrendChart from "../components/TrendChart";
+import CategoryChart from "../components/CategoryChart";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import {
+  Document,
+  Packer,
+  Paragraph,
+  Table,
+  TableRow,
+  TableCell,
+  TextRun
+} from "docx";
+
+import { saveAs } from "file-saver";
 
 function formatAmount(n) {
   return new Intl.NumberFormat("en-IN").format(Math.abs(n));
@@ -65,16 +81,27 @@ function Dashboard() {
   const [summary, setSummary] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [filter, setFilter] = useState("all");
+  const [transactions, setTransactions] = useState([]);
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [showDownloadMenu, setShowDownloadMenu] =
+  useState(false);
   const navigate = useNavigate();
 
   const fetchSummary = async () => {
-    try {
-      const res = await api.get("/transactions/summary");
-      setSummary(res.data);
-    } catch (err) {
-      console.error(err.response?.data);
-    }
-  };
+  try {
+
+    const summaryRes = await api.get("/transactions/summary");
+    setSummary(summaryRes.data);
+
+    const txRes = await api.get("/transactions?page=1&limit=50");
+    setTransactions(txRes.data);
+
+  } catch (err) {
+    console.error(err.response?.data);
+  }
+};
 
   const refreshAll = () => {
     fetchSummary();
@@ -96,6 +123,280 @@ function Dashboard() {
   }, []);
 
   const balancePositive = summary ? summary.balance >= 0 : true;
+  const handleExportCSV = async () => {
+
+  try {
+
+    const res = await api.get(
+      "/transactions?page=1&limit=1000"
+    );
+
+    const transactions = res.data;
+
+    const headers = [
+      "Date",
+      "Type",
+      "Category",
+      "Amount",
+      "Currency",
+      "Note"
+    ];
+
+    const rows = transactions.map((t) => [
+
+      new Date(
+        t.date || t.createdAt
+      ).toLocaleDateString(),
+
+      t.type,
+
+      t.category,
+
+      t.amount,
+
+      t.currency,
+
+      t.note || ""
+
+    ]);
+
+    const csvContent = [
+
+      headers.join(","),
+
+      ...rows.map((r) => r.join(","))
+
+    ].join("\n");
+
+    const blob = new Blob(
+      [csvContent],
+      {
+        type: "text/csv;charset=utf-8;"
+      }
+    );
+
+    const url =
+      window.URL.createObjectURL(blob);
+
+    const link =
+      document.createElement("a");
+
+    link.href = url;
+
+    link.setAttribute(
+      "download",
+      "transactions.csv"
+    );
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    document.body.removeChild(link);
+
+  } catch (err) {
+
+    console.error(err);
+
+  }
+};
+
+const handleExportExcel = async () => {
+
+  try {
+
+    const res = await api.get(
+      "/transactions?page=1&limit=1000"
+    );
+
+    const transactions = res.data;
+
+    const data = transactions.map((t) => ({
+      Date: new Date(
+        t.date || t.createdAt
+      ).toLocaleDateString(),
+
+      Type: t.type,
+
+      Category: t.category,
+
+      Amount: t.amount,
+
+      Currency: t.currency,
+
+      Note: t.note || ""
+    }));
+
+    const worksheet =
+      XLSX.utils.json_to_sheet(data);
+
+    const workbook =
+      XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      "Transactions"
+    );
+
+    XLSX.writeFile(
+      workbook,
+      "transactions.xlsx"
+    );
+
+  } catch (err) {
+
+    console.error(err);
+
+  }
+};
+
+const handleExportPDF = async () => {
+
+  try {
+
+    const res = await api.get(
+      "/transactions?page=1&limit=1000"
+    );
+
+    const transactions = res.data;
+
+    const doc = new jsPDF();
+
+    doc.setFontSize(18);
+
+    doc.text(
+      "Expense Tracker Report",
+      14,
+      20
+    );
+
+    const tableData =
+      transactions.map((t) => [
+
+        new Date(
+          t.date || t.createdAt
+        ).toLocaleDateString(),
+
+        t.type,
+
+        t.category,
+
+        `${t.currency} ${t.amount}`,
+
+        t.note || ""
+
+      ]);
+
+    autoTable(doc, {
+
+      head: [[
+        "Date",
+        "Type",
+        "Category",
+        "Amount",
+        "Note"
+      ]],
+
+      body: tableData,
+
+      startY: 30
+
+    });
+
+    doc.save("transactions.pdf");
+
+  } catch (err) {
+
+    console.error(err);
+
+  }
+};
+
+const handleExportDOCX = async () => {
+
+  try {
+
+    const res = await api.get(
+      "/transactions?page=1&limit=1000"
+    );
+
+    const transactions = res.data;
+
+    const rows = transactions.map((t) => (
+
+      new TableRow({
+
+        children: [
+
+          new TableCell({
+            children: [
+              new Paragraph(
+                new Date(
+                  t.date || t.createdAt
+                ).toLocaleDateString()
+              )
+            ]
+          }),
+
+          new TableCell({
+            children: [
+              new Paragraph(t.type)
+            ]
+          }),
+
+          new TableCell({
+            children: [
+              new Paragraph(t.category)
+            ]
+          }),
+
+          new TableCell({
+            children: [
+              new Paragraph(
+                `${t.currency} ${t.amount}`
+              )
+            ]
+          })
+
+        ]
+
+      })
+
+    ));
+
+    const doc = new Document({
+
+      sections: [{
+        children: [
+
+          new Paragraph({
+            text: "Expense Tracker Report",
+            heading: "Heading1"
+          }),
+
+          new Table({
+            rows
+          })
+
+        ]
+      }]
+    });
+
+    const blob =
+      await Packer.toBlob(doc);
+
+    saveAs(
+      blob,
+      "transactions.docx"
+    );
+
+  } catch (err) {
+
+    console.error(err);
+
+  }
+};
 
   return (
     <div style={{ minHeight: "100vh", background: "#0f0f13" }}>
@@ -178,17 +479,6 @@ function Dashboard() {
             />
           </div>
         )}
-
-        {/* Analytics Chart */}
-        <div
-          className="animate-slide-up"
-          style={{
-          marginBottom: "28px"
-        }}
-        >
-          <ExpenseChart summary={summary} />
-        </div>
-
         {/* Main layout */}
         <div style={{ display: "grid", gridTemplateColumns: "340px 1fr", gap: "20px", alignItems: "start" }}>
           {/* Left: Form */}
@@ -198,6 +488,47 @@ function Dashboard() {
 
           {/* Right: List with filter */}
           <div className="animate-slide-up" style={{ animationDelay: "0.1s", animationFillMode: "both" }}>
+            <input
+                type="text"
+                placeholder="Search transactions..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="inp"
+                style={{
+                marginBottom: "14px"
+                }}
+            />
+
+            <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="inp"
+                style={{
+                marginBottom: "14px",
+                cursor: "pointer"
+                }}
+            >
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="highest">Highest Amount</option>
+            <option value="lowest">Lowest Amount</option>
+            </select>
+
+            <select
+  value={dateFilter}
+  onChange={(e) => setDateFilter(e.target.value)}
+  className="inp"
+  style={{
+    marginBottom: "14px",
+    cursor: "pointer"
+  }}
+>
+  <option value="all">All Time</option>
+  <option value="7days">Last 7 Days</option>
+  <option value="30days">Last 30 Days</option>
+  <option value="month">This Month</option>
+</select>
+            
             {/* Filter tabs */}
             <div style={{
               display: "flex", gap: "6px",
@@ -242,15 +573,107 @@ function Dashboard() {
               ))}
             </div>
 
-            <TransactionList
-              refreshKey={refreshKey}
-              onDelete={handleDelete}
-              filter={filter}
-            />
+            <div
+  style={{
+    position: "relative",
+    marginBottom: "14px"
+  }}
+>
+
+  <button
+    className="btn"
+    onClick={() =>
+      setShowDownloadMenu(
+        !showDownloadMenu
+      )
+    }
+  >
+    Download ▼
+  </button>
+
+  {showDownloadMenu && (
+
+    <div
+      style={{
+        position: "absolute",
+        top: "110%",
+        right: 0,
+        background: "#13131e",
+        border: "1px solid #23233a",
+        borderRadius: "12px",
+        overflow: "hidden",
+        zIndex: 100,
+        minWidth: "180px"
+      }}
+    >
+
+      <button
+        className="download-item"
+        onClick={handleExportCSV}
+      >
+        Export CSV
+      </button>
+
+      <button
+  className="download-item"
+  onClick={handleExportExcel}
+>
+  Export Excel
+</button>
+
+      <button
+  className="download-item"
+  onClick={handleExportPDF}
+>
+  Export PDF
+</button>
+
+      <button
+  className="download-item"
+  onClick={handleExportDOCX}
+>
+  Export DOCX
+</button>
+
+    </div>
+
+  )}
+
+</div>
+
+             <TransactionList
+  refreshKey={refreshKey}
+  onDelete={handleDelete}
+  filter={filter}
+  search={search}
+  sortBy={sortBy}
+  dateFilter={dateFilter}
+/>
           </div>
         </div>
 
       </div>
+
+        {/* Analytics Chart */}
+        <div
+          className="animate-slide-up"
+          style={{
+          marginBottom: "28px"
+        }}
+        >
+          <ExpenseChart summary={summary} />
+          <div
+  className="animate-slide-up"
+  style={{
+    marginBottom: "28px"
+  }}
+>
+  <TrendChart transactions={transactions} />
+</div>
+        </div>
+        <CategoryChart transactions={transactions} />
+
+        
 
       {/* Footer */}
       <div style={{

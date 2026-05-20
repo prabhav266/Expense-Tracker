@@ -24,7 +24,10 @@ const transactionSchema = z.object({
 
   category: z.string(),
 
-  note: z.string().optional()
+  note: z.string().optional(),
+
+
+  date: z.string()
 });
 
 module.exports = {

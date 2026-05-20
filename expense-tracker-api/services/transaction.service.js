@@ -1,9 +1,15 @@
 const prisma = require("../lib/prisma");
 
 exports.createTransaction = async (data, userId) => {
+
   return prisma.transaction.create({
-    data: { ...data, userId }
+    data: {
+      ...data,
+      date: new Date(data.date),
+      userId
+    }
   });
+
 };
 
 // BUG FIX: added optional `type` param so filter actually works

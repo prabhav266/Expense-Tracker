@@ -23,6 +23,7 @@ model Transaction {
   category  String
   note      String?
   createdAt DateTime @default(now())
+  date      DateTime @default(now())
 
   userId    Int
   user      User @relation(fields: [userId], references: [id])
